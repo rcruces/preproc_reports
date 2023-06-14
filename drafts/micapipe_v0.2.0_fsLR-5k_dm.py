@@ -11,10 +11,13 @@ import os
 import glob
 import nibabel as nb
 import numpy as np
+import seaborn
+import cmocean
 from brainspace.mesh.mesh_io import read_surface
 from brainspace.plotting import plot_hemispheres
 from brainspace.mesh.array_operations import smooth_array
 from brainspace.gradient import GradientMaps
+cmaps = cmocean.cm.cmap_d
 
 # -------------------------------------------
 # SET VARIABLES
@@ -50,18 +53,19 @@ n5k = 4842
 
 # -------------------------------------------
 # DEFINE FUNCTIONS
-def load_5k(File, Ndim, mod=None):
+def load_5k(File, Ndim):
     # load the matrix
-    mtx = np.loadtxt(File, dtype=float, delimiter=' ')
-    
+    #mtx = np.loadtxt(File, dtype=float, delimiter=' ')
+    mtx = nb.load(File).darrays[0].data
     # Mirror the matrix
     c5k = np.triu(mtx,1)+mtx.T
     
     return c5k
 
-def load_5k_GD(File, Ndim, mod=None):
+def load_5k_GD(File, Ndim):
     # load the matrix
-    mtx = np.loadtxt(File, dtype=float, delimiter=' ')
+    #mtx = np.loadtxt(File, dtype=float, delimiter=' ')
+    mtx = nb.load(File).darrays[0].data
     return(mtx)
 
 def smooth_surf(surf_l, surf_r, points, Kernel='uniform', Niter=20, Relax=0.5, Mask=mask):
@@ -97,8 +101,9 @@ def load_connectomes(files, Ndim, func, Print=False):
         M[:,:,i] = func(f, Ndim)
     return M
 
-# -------------------------------------------
+# --------------------------------------------------------------------------------------
 # GD - Geodesic Distance
+# --------------------------------------------------------------------------------------
 
 # Load connectomes
 files=sorted(glob.glob('sub-*/ses-*/dist/*_surf-fsLR-5k_GD.txt'))
@@ -118,9 +123,12 @@ def save_gii(data_array, file_name):
     nb.save(img=gifti_img, filename=file_name)
 
 # Save each matrix as gifti
-for i,n, in enumerate(files):
-    print(i+n)
+for i,f, in enumerate(files):
+    print(f)
+    save_gii(GD[:,:,i], f.replace('txt', 'shape.gii'))
 
+files=sorted(glob.glob('sub-*/ses-*/dist/*_surf-fsLR-5k_GD.shape.gii'))
+GD = load_connectomes(files, n5k, load_5k_GD, Print=True)
 # --------------------------------------------------------------------------------------
 
 # Mean matrix across the z axis (subjects)
@@ -157,14 +165,13 @@ for i, g in enumerate(GD_gradients.T[0:Ngrad,:]):
     g_nan = np.full(mask.shape, np.nan)
     g_nan[indx] = g
     # fill in the calculated values into the corresponding indices of the new array
-    grad[i] = smooth_surf(c5k_lhi, c5k_rhi, g_nan, Niter=3, Relax=0.3)
     grad[i] = g_nan
 
 # plot the gradients
 labels=['G'+str(x) for x in list(range(1,Ngrad+1))]
 plot_hemispheres(c5k_lhi, c5k_rhi, array_name=grad, cmap='RdBu_r', nan_color=(0, 0, 0, 1),
   zoom=1.3, size=(900, 750), embed_nb=True, color_range='sym', color_bar='right', label_text={'left': labels},
-  screenshot=Save, filename=Save_png + dataset + '_GD_dm_fsLR-5k_MICs.png')  
+  screenshot=Save, filename=Save_png + dataset + 'fsLR-5k_GD-dm.png')  
 
 # Plot the mean GD for QC
 feat=np.sum(gd_mean,axis=1)
@@ -173,57 +180,198 @@ plot_hemispheres(c5k_lhi, c5k_rhi, array_name=feat, cmap='Blues', nan_color=(0, 
                       zoom=1.3, size=(900, 750), embed_nb=True,
                       color_bar='right', layout_style='grid', color_range=Range,
                       label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
-                      screenshot=Save, filename=Save_png + dataset + '_GD_fsLR-5k.png')
+                      screenshot=Save, filename=Save_png + dataset + 'fsLR-5k_GD-colsum.png')
 
-# -------------------------------------------
+# --------------------------------------------------------------------------------------
 # MPC - Microstructure Profile Covariance
+# --------------------------------------------------------------------------------------
+def dm_5k(CN, mask, modality=None, Ngrad=3, S=0.9, Smooth=False,
+          plot_group=True, mod='', qRange=(0.01,0.95),
+          cmap='cmo.deep'):
+    # Number of vertices per one hemisphere
+    #N = 4842
+    if modality=="GD":
+        print("[Info]... GD DM will be calculated per hemisphere")
+    elif modality=="SC":
+        print("[Info]... SC DM will be calculated per hemisphere")
+
+    # Mean matrix across the z axis (subjects)
+    cn_mean = np.mean(CN, axis=2)
+    
+    # Cleanup before diffusion embeding
+    cn_mean[~np.isfinite(cn_mean)] = 0
+    cn_mean[np.isnan(cn_mean)] = 0
+    cn_mean[cn_mean==0] = np.finfo(float).eps
+    
+    # Get the index of the non medial wall regions
+    indx = np.where(mask==1)[0]
+
+    # Slice the matrix
+    CN_masked = cn_mean[indx, :]
+    CN_masked = CN_masked[:, indx]
+
+    print("[INFO]... Calculating the gradients")
+    gm = GradientMaps(n_components=Ngrad, random_state=None, approach='dm', kernel='normalized_angle')
+    gm.fit(CN_masked, sparsity=S)
+    
+    # Map gradients to surface
+    grad = [None] * Ngrad
+    for i, g in enumerate(gm.gradients_.T[0:Ngrad,:]):
+        # create a new array filled with NaN values
+        g_nan = np.full(mask.shape, np.nan)
+        g_nan[indx] = g
+
+        # fill in the calculated values into the corresponding indices of the new array
+        if Smooth==True:
+            grad[i] = smooth_surf(c5k_lhi, c5k_rhi, g_nan, Niter=3, Relax=0.3)
+        else:
+            grad[i] = g_nan
+    
+    # plot the gradients
+    labels=['G'+str(x) for x in list(range(1,Ngrad+1))]
+    p=plot_hemispheres(c5k_lhi, c5k_rhi, array_name=grad, cmap='RdBu_r', nan_color=(0, 0, 0, 1),
+      zoom=1.3, size=(900, 750), embed_nb=False, color_range='sym', color_bar='right', label_text={'left': labels},
+      screenshot=Save, filename=Save_png + dataset + 'fsLR-5k_'+mod+'_dm.png')  
+    
+    return(gm,p)
+
+def dm_5k_plot(gm, mask, Smooth=True, plot_group=True,
+               mod='', qRange=(0.01,0.95), cmap='cmo.deep'):
+    # Map gradients to surface
+    grad = [None] * Ngrad
+    for i, g in enumerate(gm.gradients_.T[0:Ngrad,:]):
+        # create a new array filled with NaN values
+        g_nan = np.full(mask.shape, np.nan)
+        g_nan[indx] = g
+
+        # fill in the calculated values into the corresponding indices of the new array
+        if Smooth==True:
+            grad[i] = smooth_surf(c5k_lhi, c5k_rhi, g_nan, Niter=3, Relax=0.3)
+        else:
+            grad[i] = g_nan
+    
+    # plot the gradients
+    labels=['G'+str(x) for x in list(range(1,Ngrad+1))]
+    plot_hemispheres(c5k_lhi, c5k_rhi, array_name=grad, cmap='RdBu_r', nan_color=(0, 0, 0, 1),
+      zoom=1.3, size=(900, 750), embed_nb=True, color_range='sym', color_bar='right', label_text={'left': labels},
+      screenshot=Save, filename=Save_png + dataset + 'fsLR-5k_'+mod+'_dm.png')  
+    
+    if plot_group==True:
+        # Plot the group mean Connectome
+        if Smooth==True:
+            feat=smooth_surf(c5k_lhi, c5k_rhi,np.sum(cn_mean, axis=1), Niter=3, Relax=0.3)
+        else:
+            feat=np.sum(cn_mean, axis=1)
+        Range=(np.quantile(feat, qRange[0]), np.quantile(feat, qRange[0]))
+        plot_hemispheres(c5k_lhi, c5k_rhi, array_name=feat*mask, cmap=cmap, nan_color=(0, 0, 0, 1),
+                         zoom=1.3, size=(900, 750), embed_nb=True,
+                         color_bar='right', layout_style='grid', color_range=Range,
+                         label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
+                         screenshot=Save, filename=Save_png + dataset + 'fsLR-5k_'+mod+'_colsum.png')
+
+    
+
 # Load all the connectomes
 acq='acq-T1map'
-files=sorted(glob.glob('sub-*/ses-*/mpc/'+acq+'/*_surf-fsLR-5k_desc-MPC.txt'))
+files=sorted(glob.glob('sub-*/ses-*/mpc/'+acq+'/*_surf-fsLR-5k_desc-MPC.shape.gii'))
 CN = load_connectomes(files, 4842, load_5k)
 
 # Mean matrix across the z axis (subjects)
 cn_mean = np.mean(CN, axis=2)
+
+feat=np.abs(np.sum(cn_mean, axis=1))
+Range=(np.quantile(feat, 0.001), np.quantile(feat, 0.1))
+plot_hemispheres(c5k_lhi, c5k_rhi, array_name=feat, cmap='rocket', nan_color=(0, 0, 0, 1),
+                 zoom=1.3, size=(900, 750), embed_nb=False,
+                 color_bar='right', layout_style='grid', color_range=Range,
+                 label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
+                 screenshot=True, filename=Save_png + dataset + 'fsLR-5k_MPC-qT1_colsum_mask.png')
+
+# Save each matrix as gifti
+for i,f, in enumerate(files):
+    print(f)
+    save_gii(CN[:,:,i], f.replace('txt', 'shape.gii'))
+
+dm_5k(CN, mask, modality=None, Ngrad=3, S=0.9, Smooth=False,
+          plot_group=True, mod='', qRange=(0.01,0.95),
+          cmap='cmo.deep')
+
+# ------------------------------------------------------------
+acq='acq-MTR'
+files=sorted(glob.glob('sub-*/ses-*/mpc/'+acq+'/*_surf-fsLR-5k_desc-MPC.shape.gii'))
+mtr = load_connectomes(files, 4842, load_5k, Print=True)
+
+# Save each matrix as gifti
+for i,f, in enumerate(files):
+    print(f)
+    save_gii(mtr[:,:,i], f.replace('txt', 'shape.gii'))
+
+# Mean matrix across the z axis (subjects)
+cn_mean = np.mean(mtr, axis=2)
 
 # Cleanup before diffusion embeding
 cn_mean[~np.isfinite(cn_mean)] = 0
 cn_mean[np.isnan(cn_mean)] = 0
 cn_mean[cn_mean==0] = np.finfo(float).eps
 
-# Plot the mean MPC for QC
-feat_s=smooth_surf(c5k_lhi, c5k_rhi,np.sum(cn_mean, axis=1), Niter=3, Relax=0.3)
-Range=(np.quantile(feat_s, 0.01), np.quantile(feat_s, 0.95))
-plot_hemispheres(c5k_lhi, c5k_rhi, array_name=feat_s, cmap='mako_r', nan_color=(0, 0, 0, 1),
-                      zoom=1.3, size=(900, 750), embed_nb=True,
-                      color_bar='right', layout_style='grid', color_range=Range,
-                      label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
-                      screenshot=False, filename=Save_png + dataset + '_MPC-' + acq + '_fsLR-5k.png')
+feat=smooth_surf(c5k_lhi, c5k_rhi,np.sum(cn_mean, axis=1), Niter=3, Relax=0.3)
+
+feat=np.abs(np.sum(cn_mean, axis=1))
+Range=(np.quantile(feat, 0.000001), np.quantile(feat, 0.2))
+plot_hemispheres(c5k_lhi, c5k_rhi, array_name=feat, cmap='rocket', nan_color=(0, 0, 0, 1),
+                 zoom=1.3, size=(900, 750), embed_nb=False,
+                 color_bar='right', layout_style='grid', color_range=Range,
+                 label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
+                 screenshot=True, filename=Save_png + dataset + 'fsLR-5k_MPC-MTR_colsum.png')
+
+# Get the index of the non medial wall regions
+indx = np.where(mask==1)[0]
 
 # Slice the matrix
-MPC_masked = cn_mean[indx, :]
-MPC_masked = MPC_masked[:, indx]
-MPC_masked.shape
+CN_masked = cn_mean[indx, :]
+CN_masked = CN_masked[:, indx]
 
-# Calculate the gradients
-MPCgm = GradientMaps(n_components=Ngrad, random_state=None, approach='dm', kernel='normalized_angle')
-MPCgm.fit(MPC_masked, sparsity=0.9)
+dm_5k(mtr, mask, modality=None, Ngrad=3, S=0.9, Smooth=False,
+          plot_group=True, mod='MPC-MTR', qRange=(0.01,0.95),
+          cmap='cmo.deep')
 
-# Map gradients to surface
-# other color 'RdYlBu_r'
-grad = [None] * Ngrad
-for i, g in enumerate(MPCgm.gradients_.T[0:Ngrad,:]):
-    # create a new array filled with NaN values
-    g_nan = np.full(mask.shape, np.nan)
-    g_nan[indx] = g
+# ------------------------------------------------------------
+acq='acq-T2star'
+files=sorted(glob.glob('sub-*/ses-*/mpc/'+acq+'/*_surf-fsLR-5k_desc-MPC.txt'))
+t2s = load_connectomes(files, 4842, load_5k, Print=True)
 
-    # fill in the calculated values into the corresponding indices of the new array
-    grad[i] = smooth_surf(c5k_lhi, c5k_rhi, g_nan, Niter=3, Relax=0.3)
+# Save each matrix as gifti
+for i,f, in enumerate(files):
+    print(f)
+    save_gii(t2s[:,:,i], f.replace('txt', 'shape.gii'))
+# ------------------------------------------------------------
 
-# plot the gradients
-labels=['G'+str(x) for x in list(range(1,Ngrad+1))]
-plot_hemispheres(c5k_lhi, c5k_rhi, array_name=grad, cmap='RdBu_r', nan_color=(0, 0, 0, 1),
-  zoom=1.3, size=(900, 750), embed_nb=True, color_range='sym', color_bar='right', label_text={'left': labels},
-  screenshot=False, filename=Save_png + dataset + '_MPC-' + acq + '_dm_fsLR-5k.png')  
+# Mean matrix across the z axis (subjects)
+cn_mean = np.mean(t2s, axis=2)
+
+# Cleanup before diffusion embeding
+cn_mean[~np.isfinite(cn_mean)] = 0
+cn_mean[np.isnan(cn_mean)] = 0
+cn_mean[cn_mean==0] = np.finfo(float).eps
+
+feat=smooth_surf(c5k_lhi, c5k_rhi,np.sum(cn_mean, axis=1), Niter=3, Relax=0.3)
+Range=(np.quantile(feat, 0.1), np.quantile(feat, 0.95))
+plot_hemispheres(c5k_lhi, c5k_rhi, array_name=feat*mask, cmap='rocket', nan_color=(0, 0, 0, 1),
+                 zoom=1.3, size=(900, 750), embed_nb=False,
+                 color_bar='right', layout_style='grid', color_range=Range,
+                 label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
+                 screenshot=Save, filename=Save_png + dataset + 'fsLR-5k_MPC-MTR_colsum.png')
+
+# Get the index of the non medial wall regions
+indx = np.where(mask==1)[0]
+
+# Slice the matrix
+CN_masked = cn_mean[indx, :]
+CN_masked = CN_masked[:, indx]
+
+dm_5k(t2s, mask, modality=None, Ngrad=3, S=0.9, Smooth=True,
+          plot_group=True, mod='', qRange=(0.01,0.95),
+          cmap='cmo.deep')
 
 # -------------------------------------------
 # FC - Functional Connectome
