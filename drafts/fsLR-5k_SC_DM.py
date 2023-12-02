@@ -121,6 +121,9 @@ def fslr5k_dm_lr(mtx, mask_5k, Ngrad=3, log=False, S=0, kernel=None):
     # Replace infinite with 0
     mtx_log[~np.isfinite(mtx_log)] = 0
     
+    # Replace 0 with epsilon
+    mtx_log[mtx_log==0] = np.finfo(float).eps
+    
     # Left and right mask
     indx_L = np.where(mask_5k[0:4842]==1)[0]
     indx_R = np.where(mask_5k[4842:9684]==1)[0]
@@ -201,19 +204,22 @@ def fslr5k_dm(mtx, mask, Ngrad=3, Smooth=False, S=0.9, kernel='normalized_angle'
 Ngrad=10
 
 # Calculate the gradients: FULL matrix
-sd_dmA, gradA = fslr5k_dm(sc_5k_mean, mask_5k, Ngrad=Ngrad, S=0, kernel=None)
+_, gradA = fslr5k_dm(sc_5k_mean, mask_new, Ngrad=Ngrad, S=0, kernel=None)
 
 # plot the gradients
 Nplot=5
-labels=['G'+str(x) for x in list(range(1,Nplot+1))]
+labels=['EV'+str(x) for x in list(range(1,Nplot+1))]
 plot_hemispheres(i5_lh, i5_rh, array_name=gradA[0:Nplot], cmap='RdBu_r', nan_color=(0, 0, 0, 1),
   zoom=1.3, size=(900, 750), embed_nb=False, color_range='sym',
   color_bar='right', label_text={'left': labels}, screenshot=False,
-  filename='/home/bic/rcruces/Desktop/PNI_SC-3G.png')
+  filename='/home/bic/rcruces/Desktop/PsNI_SC-3G.png')
+
+# Cleaner mask withoput outliers
+mask_new = np.where(gradA[0]<0, 0, 1) * mask_5k
 
 
 # Calculate the gradients: LEFT to RIGHT matrix
-sd_dmB, gradB = fslr5k_dm_lr(sc_5k_mean, mask_5k, Ngrad=Ngrad, S=0, kernel=None)
+_, gradB = fslr5k_dm_lr(sc_5k_mean, mask_new, Ngrad=Ngrad, S=0, kernel=None, log=False)
 
 # plot the gradients
 plot_hemispheres(i5_lh, i5_rh, array_name=gradB[0:Nplot], cmap='RdBu_r', nan_color=(0, 0, 0, 1),

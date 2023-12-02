@@ -22,10 +22,10 @@ from brainspace.utils.parcellation import map_to_labels
 from brainspace.vtk_interface import wrap_vtk, serial_connect
 from vtk import vtkPolyDataNormals
 
-bids='/data_/mica3/BIDS_MICs/rawdata'
-sub='HC012'
-ses_number='01'
-sbids='sub-HC012_ses-01'
+bids='/data_/mica3/BIDS_PNI/rawdata'
+sub='PNC010'
+ses_number='03'
+sbids=f'sub-{sub}_ses-{ses_number}'
 MICAPIPE='/host/yeatman/local_raid/rcruces/git_here/micapipe'
 
 from brainspace.datasets import load_mask
@@ -148,8 +148,8 @@ def qc_header():
 
     return _static_block
 
-subj_dir='/data/mica3/BIDS_MICs/derivatives/micapipe_v0.2.0/sub-HC012/ses-01'
-swm_json=f'{subj_dir}/QC/sub-HC012_ses-01_module-SWM.json'
+subj_dir=f'/data/mica3/BIDS_PNI/derivatives/micapipe_v0.2.0/sub-{sub}/ses-{ses_number}'
+swm_json=f'{subj_dir}/QC/{sbids}_module-SWM.json'
 tmpDir="/home/bic/rcruces/Desktop/tmp_fig"
 
 #------------------------------------------------------------------------------#
@@ -206,7 +206,7 @@ def qc_swm(swm_json=''):
         #display.start()
         swm_png=f"{tmpDir}/{sbids}_space-nativepro_surf-fsnative_label-{swm_label}.png"
         plot_hemispheres(lhSWM, rhSWM, size=(900, 250), zoom=1.25, embed_nb=True, interactive=False, share='both',
-                         nan_color=(0, 0, 0, 1), color_range=(-1,1), transparent_bg=False,
+                         nan_color=(0, 0, 0, 1), color_range=(-1,1), transparent_bg=True,
                          screenshot = True, offscreen=True, filename = swm_png)
         _static_block += surf_table_row(swm_label, swm_png)
         #display.stop()
@@ -224,7 +224,7 @@ def qc_swm(swm_json=''):
     swm_files = sorted(glob.glob(f"{map_dir}/{sbids}_hemi-L_surf-fsLR-32k_label-swm*.func.gii"))
     
     # Get the unique maps IDs
-    maps_str = list(set([file.split('mm_')[1][:-9] for file in swm_files]))
+    maps_str = list(set([file.split('vox_')[1][:-9] for file in swm_files]))
     
     # Get the unique surfaces
     surf_str = sorted(list(set([file.split('label-')[1].split('_')[0] for file in swm_files])))
