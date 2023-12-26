@@ -23,7 +23,7 @@ from brainspace.vtk_interface import wrap_vtk, serial_connect
 from vtk import vtkPolyDataNormals
 
 bids='/data_/mica3/BIDS_PNI/rawdata'
-sub='PNC010'
+sub='PNC019'
 ses_number='03'
 sbids=f'sub-{sub}_ses-{ses_number}'
 MICAPIPE='/host/yeatman/local_raid/rcruces/git_here/micapipe'
@@ -206,7 +206,7 @@ def qc_swm(swm_json=''):
         #display.start()
         swm_png=f"{tmpDir}/{sbids}_space-nativepro_surf-fsnative_label-{swm_label}.png"
         plot_hemispheres(lhSWM, rhSWM, size=(900, 250), zoom=1.25, embed_nb=True, interactive=False, share='both',
-                         nan_color=(0, 0, 0, 1), color_range=(-1,1), transparent_bg=True,
+                         nan_color=(0, 0, 0, 1), color_range=(-1,1), transparent_bg=True, scale=5,
                          screenshot = True, offscreen=True, filename = swm_png)
         _static_block += surf_table_row(swm_label, swm_png)
         #display.stop()
@@ -249,7 +249,7 @@ def qc_swm(swm_json=''):
                 f[mask_32k == False] = np.nan
                 # PLot the values
                 plot_hemispheres(c69_32k_I_lh, c69_32k_I_rh, array_name=f, size=(900, 250), color_bar='bottom', zoom=1.25, embed_nb=True, interactive=False, share='both',
-                                 nan_color=(0, 0, 0, 1), color_range=measure_crange, cmap='mako', transparent_bg=False,
+                                 nan_color=(0, 0, 0, 1), color_range=measure_crange, cmap='mako', transparent_bg=True, scale=5,
                                  screenshot = True, offscreen=True, filename = measure_c69_32k_png)
                 #display.stop()
                 swm_surf_table += (
