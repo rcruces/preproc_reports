@@ -5,7 +5,7 @@
 # sub=$(echo $i | awk -F '/' '{print $1}')
 # ses=$(echo $i | awk -F '/' '{print $2}')
 # logs=/data_/mica2/tmpDir/${sub}_${ses}
-# echo qsub -q mica.q -pe smp 10 -l h_vmem=6G -N ${sub}${ses} -e ${logs}.e -o ${logs}.txt /host/yeatman/local_raid/rcruces/git_here/preproc_reports/drafts/micapipe_MICs.sh $sub $ses
+# qsub -q mica.q -pe smp 10 -l h_vmem=6G -N ${sub}${ses} -e ${logs}.e -o ${logs}.txt /host/yeatman/local_raid/rcruces/git_here/preproc_reports/drafts/micapipe_MICs.sh $sub $ses
 # done
 
 sub=$1
