@@ -134,10 +134,9 @@ from scipy import stats
 def NormalizeMode(data):   
     return(data / stats.mode(data, keepdims=True)[0][0])
 
-os.chdir('/data_/mica3/BIDS_MICs/derivatives/micapipe_v0.2.0')
-
-
-
+# Set the dataset directory
+dataset='EpiC'
+os.chdir(f'/data_/mica3/BIDS_{dataset}/derivatives/micapipe_v0.2.0')
 
 # Path to MICAPIPE
 micapipe=os.popen("echo $MICAPIPE").read()[:-1]
@@ -151,8 +150,8 @@ mask_10k = np.concatenate((mask_lh, mask_rh), axis=0)
 mask_surf = mask_10k != 0
 
 # Load all flair data
-lh_str='sub-PX*/ses-01/maps/*hemi-L_surf-fsLR-5k_label-midthickness_flair*'
-rh_str='sub-PX*/ses-01/maps/*hemi-R_surf-fsLR-5k_label-midthickness_flair*'
+lh_str='sub-*/ses-01/maps/*hemi-L_surf-fsLR-5k_label-midthickness_flair*'
+rh_str='sub-*/ses-01/maps/*hemi-R_surf-fsLR-5k_label-midthickness_flair*'
 lh_files=sorted(glob.glob(lh_str))
 rh_files=sorted(glob.glob(rh_str))
 
@@ -162,27 +161,29 @@ bids_ids = [elem.split('/')[0] + '_' + elem.split('/')[1] for elem in lh_files]
 # Load all the flair data
 Nth=np.concatenate((nb.load(lh_files[0]).darrays[0].data, nb.load(rh_files[0]).darrays[0].data), axis=0).shape[0]
 
+# Create an empty array
 surf_map=np.empty([len(lh_files), Nth], dtype=float)
+
+# Iterate and load all subjects
 for i, _ in enumerate(lh_files):
     #print(f)
     surf_map[i,:] = np.hstack(np.concatenate((nb.load(lh_files[i]).darrays[0].data, nb.load(rh_files[i]).darrays[0].data), axis=0))
 
-# Normalize data
-surf_norm = np.apply_along_axis(NormalizeMode, 1, surf_map)
 
 # Mean matrix across the x axis (vertices)
-map_mean = np.mean(surf_norm, axis=0)
+map_mean = np.mean(surf_map, axis=0)
 
 # Plot the mean FEATURE 10mm on conte69 surface
-quantile=(0.15, 0.999)
+quantile=(0.15, 0.99)
 cmap='afmhot'
 Range=(np.quantile(map_mean, quantile[0]), np.quantile(map_mean, quantile[1]))
+Save=True
 
 plot_hemispheres(i5_lh, i5_rh, array_name=map_mean, cmap=cmap, nan_color=(0, 0, 0, 1),
                    zoom=1.3, size=(900, 750), embed_nb=False,
                    color_bar='right', layout_style='grid', color_range=Range,
                    label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
-                   screenshot=False)
+                   screenshot=Save, transparent_bg=True, filename=f'/home/bic/rcruces/Desktop/flair_mean_{dataset}.png')
 
 # Plot the mean VARIANCE 10mm on conte69 surface
 map_var = np.var(surf_map, axis=0)
@@ -191,31 +192,35 @@ plot_hemispheres(i5_lh, i5_rh, array_name=map_var, cmap='Spectral_r', nan_color=
                      zoom=1.3, size=(900, 750), embed_nb=False,
                      color_bar='right', layout_style='grid', color_range=(0, np.nanquantile(map_var, 0.95)),
                      label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
-                     screenshot=False)
+                     screenshot=Save, transparent_bg=True, filename=f'/home/bic/rcruces/Desktop/flair_var_{dataset}.png')
 
 ## correlation matrix
 corr = np.corrcoef(surf_map)
 plot_connectome(corr, 'Subject similarity', xlab=None, ylab=None, col='Spectral_r', vmin=0.1, vmax=1,
                            yticklabels=bids_ids, xticklabels=bids_ids)
 
+# Distribution of each subjec
+# Find indices and values with the substring "HC"
+hc_indices = np.where(['HC' in bid_id for bid_id in bids_ids])[0]
+hc_ids = [bid_id for bid_id in bids_ids if 'HC' in bid_id]
 
-plot_ridgeplot(surf_map, bids_ids, title="flair distribution in TLE", Cmap='afmhot', Range=(0,6))
+# plot the distributions
+hc_flair = surf_map[hc_indices,:]
+plot_ridgeplot(hc_flair, hc_ids, title="flair distribution in HC", Cmap='afmhot', Range=(-200,700))
 
+# Find indices and values with the substring "PX"
+px_indices = np.where(['PX' in bid_id for bid_id in bids_ids])[0]
+px_ids = [bid_id for bid_id in bids_ids if 'PX' in bid_id]
 
+# plot the distributions
+px_flair = surf_map[px_indices,:]
+plot_ridgeplot(px_flair, px_ids, title="flair distribution in TLE", Cmap='afmhot', Range=(-200,700))
 
-
-plot_ridgeplot(surf_norm, bids_ids, title="flair distribution in TLE", Cmap='afmhot', Range=(0,1))
-
-
+# -----------------------------------------------------------------------------
 # Ttest
-px_flair = np.copy(surf_norm)
-px_ids = bids_ids
-hc_flair = np.copy(surf_norm)
-hc_ids = np.copy(bids_ids)
-
-ids = px_ids + list(hc_ids)
-
-
+# Alll subjects
+ids = px_ids + hc_ids
+# flair
 flair = np.vstack((px_flair, hc_flair))
 
 data_tb = {'sub':[x.split('_')[0].split('sub-')[1] for x in ids],
@@ -251,17 +256,16 @@ slm = SLM(
 slm.fit(flair)
 
 # Plot T-values
-Save=False
 plot_hemispheres(i5_lh, i5_rh, array_name=slm.t[0]*mask_surf, 
                  size=(900, 750), zoom=1.3, 
                  embed_nb=False, interactive=False, share='both',
                  nan_color=(0, 0, 0, 1), cmap='vlag', transparent_bg=True, 
-                 label_text={'left':['G1-tval']}, color_range='sym',
+                 label_text={'left':['G1-tval']}, color_range=(-2,2),
                  layout_style='grid', color_bar='right',
-                 screenshot=Save, filename='/home/bic/rcruces/Desktop/cihr_tvals.png', scale=3)
+                 screenshot=Save, filename=f'/home/bic/rcruces/Desktop/flair_tvals_{dataset}.png', scale=3)
 
 # Plot cluster p-values
-Thr = 0.025
+Thr = 0.05
 plot_pvalues = [np.copy(slm.P["pval"]["C"])]
 [np.place(x, np.logical_or(x > Thr, ~mask_surf), np.nan) for x in plot_pvalues]
 plot_hemispheres(i5_lh, i5_rh, array_name=plot_pvalues,
@@ -270,17 +274,69 @@ plot_hemispheres(i5_lh, i5_rh, array_name=plot_pvalues,
                 nan_color=(0, 0, 0, 1), cmap='plasma_r', transparent_bg=True, 
                 label_text={'left':['G1-pval']}, color_range=(0, Thr),
                 layout_style='grid', color_bar='right',
-                screenshot=Save, filename='/home/bic/rcruces/Desktop/cihr_pvals.png', scale=3)
+                screenshot=Save, filename=f'/home/bic/rcruces/Desktop/flair_pvals_{dataset}.png', scale=3)
 
-# Index of the controls
+# Index of the controls BOOLEAD
 indx =np.array(["HC" in f for f in ids])
+
+# coHEN'S d
+from numpy import std, mean, sqrt
+def cohen_d(x,y):
+    nx = len(x)
+    ny = len(y)
+    dof = nx + ny - 2
+    return (mean(x) - mean(y)) / sqrt(((nx-1)*std(x, ddof=1) ** 2 + (ny-1)*std(y, ddof=1) ** 2) / dof)
 
 cD = np.array([cohen_d(flair[~indx,x], flair[indx,x]) for x in range(0,flair.shape[1]) ])
 
-plot_hemispheres(inf_lh, inf_rh, array_name=cD, 
+# Plot the cohen's D value
+plot_hemispheres(i5_lh, i5_rh, array_name=cD, 
                  size=(900, 750), zoom=1.3, 
                  embed_nb=False, interactive=False, share='both',
                  nan_color=(0, 0, 0, 1), cmap='vlag', transparent_bg=True, 
-                 label_text={'left':['G1-cohenD']}, color_range=(-0.7, 0.7),
+                 label_text={'left':['G1-cohenD']}, color_range=(-0.5, 0.5),
                  layout_style='grid', color_bar='right',
-                 screenshot=False, filename='/home/bic/rcruces/Desktop/cihr_cohend.png', scale=3)
+                 screenshot=Save, filename=f'/home/bic/rcruces/Desktop/flair_cohend_{dataset}.png', scale=3)
+
+
+
+
+# -----------------------------------------------------------------------------
+# NOTE: NO NORMALIZATION IS NEEDED AFTER THE CURRENT FLAIR PROCESSING
+# Normalize data (0-1)
+surf_norm = np.apply_along_axis(NormalizeMode, 1, surf_map)
+
+# Mean matrix across the x axis (vertices)
+map_meanN = np.mean(surf_norm, axis=0)
+
+# Plot the mean FEATURE 10mm on conte69 surface
+quantile=(0.15, 0.999)
+cmap='afmhot'
+Range=(np.quantile(map_meanN, quantile[0]), np.quantile(map_meanN, quantile[1]))
+
+plot_hemispheres(i5_lh, i5_rh, array_name=map_meanN, cmap=cmap, nan_color=(0, 0, 0, 1),
+                   zoom=1.3, size=(900, 750), embed_nb=False,
+                   color_bar='right', layout_style='grid', color_range=Range,
+                   label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
+                   screenshot=False)
+
+# Plot the mean VARIANCE 10mm on conte69 surface
+map_varN = np.var(surf_map, axis=0)
+
+plot_hemispheres(i5_lh, i5_rh, array_name=map_varN, cmap='Spectral_r', nan_color=(0, 0, 0, 1),
+                     zoom=1.3, size=(900, 750), embed_nb=False,
+                     color_bar='right', layout_style='grid', color_range=(0, np.nanquantile(map_var, 0.95)),
+                     label_text={'left': ['Lateral', 'Medial'], 'top': ['Left', 'Right']},
+                     screenshot=False)
+
+## correlation matrix
+corr = np.corrcoef(surf_norm)
+plot_connectome(corr, 'Subject similarity', xlab=None, ylab=None, col='Spectral_r', vmin=0.1, vmax=1,
+                           yticklabels=bids_ids, xticklabels=bids_ids)
+
+
+# Distribution of each subjec
+plot_ridgeplot(surf_norm[0:37,:], bids_ids[0:37], title="flair distribution in TLE", Cmap='afmhot', Range=(0,5))
+
+plot_ridgeplot(surf_norm[38:,:], bids_ids[38:], title="flair distribution in TLE", Cmap='afmhot', Range=(0,5))
+

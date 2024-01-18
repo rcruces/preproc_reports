@@ -92,24 +92,26 @@ def analyze_nifti_image(image_path, mask=None, bins=2000, title='Histogram', val
 
 # -----------------------------------------------------------------------------
 # TMP dir path
-dirpath='/tmp/9546_micapipe_flair_sub-mri'
+idBIDS='sub-HC080_ses-01'
+dirpath=f'/tmp/24440_micapipe_flair_{idBIDS}'
 
 # Get the file paths
-flair=f'{dirpath}/sub-mri_flairN4.nii.gz'
-flair_brain = f'{dirpath}/sub-mri_label-brain_flairN4_mask.nii.gz'
-flair_wm = f'{dirpath}/sub-mri_label-wm_flair_mask.nii.gz'
-flair_gm = f'{dirpath}/sub-mri_label-gm_flair_mask.nii.gz'
+flair=f'{dirpath}/{idBIDS}_flairN4.nii.gz'
+flair_brain = f'{dirpath}/{idBIDS}_label-brain_flairN4_mask.nii.gz'
+flair_wm = f'{dirpath}/{idBIDS}_label-wm_flair_mask.nii.gz'
+flair_gm = f'{dirpath}/{idBIDS}_label-gm_flair_mask.nii.gz'
 
 bins=2000
-ylim=1500
+ylim=6000
+Range=(0, 200)
 # Mode and histogram of the brain
-BB_peak=analyze_nifti_image(flair, mask=flair_brain, bins=bins, title='brain', val2=521, ylim=ylim)
+BB_peak=analyze_nifti_image(flair, mask=flair_brain, bins=bins, title='brain', val2=87, Range=Range, xlim=[0,200], ylim=ylim)
 
 # Mode and histogram of the white matter
-WM_peak=analyze_nifti_image(flair, mask=flair_wm, bins=bins, title='WM', val2=522, ylim=ylim)
+WM_peak=analyze_nifti_image(flair, mask=flair_wm, bins=bins, title='WM', val2=87, Range=Range, xlim=[0,200], ylim=3200)
 
 # Mode and histogram of the gray matter
-GM_peak=analyze_nifti_image(flair, mask=flair_gm, bins=bins, title='GM', val2=674, ylim=ylim)
+GM_peak=analyze_nifti_image(flair, mask=flair_gm, bins=bins, title='GM', val2=115, Range=Range, xlim=[0,200], ylim=3200)
 
 # -----------------------------------------------------------------------------
 # Normalize brain image values
@@ -129,18 +131,23 @@ def mode_normalization(GM_mode, WM_mode, array):
 flair_data=nib.load(flair).get_fdata()
 
 # Normalize the data
-flair_gmN, flair_wmN = mode_normalization(GM_peak[1], WM_peak[1], flair_data)
+#flair_gmN, flair_wmN = mode_normalization(GM_peak[1], WM_peak[1], flair_data)
 
-xlim=[-1000,2000]
+# Normalize the data (MRtrix hist)
+flair_gmN, flair_wmN = mode_normalization(115, 87, flair_data)
+
+xlim=[-600,700]
+Range=(-600,700)
+
 # plot the histogram of the normalized GM
 # Note: data normalized my the GM mode with center the peak of the GM on zero
-analyze_nifti_image(flair_gmN, mask=flair_gm, bins=bins, title='GM norm', val2=521, ylim=ylim, xlim=xlim)
+analyze_nifti_image(flair_gmN, mask=flair_gm, bins=bins, title='GM norm', val2=0, ylim=3200, xlim=xlim, Range=Range)
 
 # plot the histogram of the normalized WM
-# Note: data normalized my the GM mode with center the peak of the WM on zero
-analyze_nifti_image(flair_wmN, mask=flair_gm, bins=bins, title='WM norm', val2=521, ylim=ylim, xlim=xlim)
+# Note: data normalized my the WM mode with center the peak of the WM on zero
+analyze_nifti_image(flair_wmN, mask=flair_wm, bins=bins, title='WM norm', val2=0, ylim=3200, xlim=xlim, Range=Range)
 
 # Normalized data
-flairN=f'{dirpath}/sub-mri_flair_norm.nii.gz'
+flairN=f'{dirpath}/{idBIDS}_flair_norm.nii.gz'
 flairN_data=nib.load(flairN).get_fdata()
-analyze_nifti_image(flairN_data, mask=flair_brain, bins=bins, title='WM norm', val2=521, ylim=ylim, xlim=xlim)
+analyze_nifti_image(flairN_data, mask=flair_brain, bins=bins, title='WM norm', val2=0, ylim=ylim, xlim=xlim, Range=Range)
