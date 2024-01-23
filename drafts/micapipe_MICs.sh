@@ -36,4 +36,4 @@ ${command} \
 # Run flair
 ${command} \
 -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
--proc_flair -tmpDir ${tmpDir}
+-proc_flair -tmpDir ${tmpDir} -SWM
