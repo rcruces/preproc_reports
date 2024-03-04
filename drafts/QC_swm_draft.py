@@ -24,7 +24,7 @@ from vtk import vtkPolyDataNormals
 
 bids='/data_/mica3/BIDS_PNI/rawdata'
 sub='PNC019'
-ses_number='03'
+ses_number='01'
 sbids=f'sub-{sub}_ses-{ses_number}'
 MICAPIPE='/host/yeatman/local_raid/rcruces/git_here/micapipe'
 
@@ -33,6 +33,11 @@ mask_32k = load_mask(join=True)
 
 c69_32k_I_lh = read_surface(MICAPIPE+'/surfaces/fsLR-32k.L.inflated.surf.gii', itype='gii')
 c69_32k_I_rh = read_surface(MICAPIPE+'/surfaces/fsLR-32k.R.inflated.surf.gii', itype='gii')
+
+subj_dir=f'/data/mica3/BIDS_PNI/derivatives/micapipe_v0.2.0/sub-{sub}/ses-{ses_number}'
+swm_json=f'{subj_dir}/QC/{sbids}_module-SWM.json'
+tmpDir="/home/bic/rcruces/Desktop/tmp_fig"
+
 
 def load_surface(lh, rh, with_normals=True, join=False):
     """
@@ -148,9 +153,6 @@ def qc_header():
 
     return _static_block
 
-subj_dir=f'/data/mica3/BIDS_PNI/derivatives/micapipe_v0.2.0/sub-{sub}/ses-{ses_number}'
-swm_json=f'{subj_dir}/QC/{sbids}_module-SWM.json'
-tmpDir="/home/bic/rcruces/Desktop/tmp_fig"
 
 #------------------------------------------------------------------------------#
 # SWM generation and mapping QC
@@ -224,7 +226,7 @@ def qc_swm(swm_json=''):
     swm_files = sorted(glob.glob(f"{map_dir}/{sbids}_hemi-L_surf-fsLR-32k_label-swm*.func.gii"))
     
     # Get the unique maps IDs
-    maps_str = list(set([file.split('vox_')[1][:-9] for file in swm_files]))
+    maps_str = list(set([file.split('mm_')[1][:-9] for file in swm_files]))
     
     # Get the unique surfaces
     surf_str = sorted(list(set([file.split('label-')[1].split('_')[0] for file in swm_files])))
