@@ -69,7 +69,6 @@ Info() {
 
 # Source print functions
 dir_functions=$(dirname $(realpath "$0"))
-source "${dir_functions}/utilities.sh"
 
 #------------------------------------------------------------------------------#
 #			ARGUMENTS
@@ -167,6 +166,11 @@ orig=(
     "*fmap-fmri_acq-mbep2d_SE_19mm_dir-PA"
     "*func-cloudy_acq-ep2d_MJC_19mm"
     "*func-cross_acq-ep2d_MJC_19mm"
+    "*anat-T1w_acq-mp2rage_0.7mm_CSptx_INV1"
+    "*anat-T1w_acq-mp2rage_0.7mm_CSptx_INV2"
+    "*anat-T1w_acq-mp2rage_0.7mm_CSptx_T1_Images"
+    "*anat-T1w_acq-mp2rage_0.7mm_CSptx_UNI_Images"
+    "*anat-T1w_acq-mp2rage_0.7mm_CSptx_UNI_DEN"
 )
 
 bids=(
@@ -176,6 +180,11 @@ bids=(
     dir-PA_epi
     task-cloudy_bold
     task-cross_bold
+    inv-1_MP2RAGE
+    inv-1_MP2RAGE
+    T1map
+    UNIT1
+    acq-DEN_UNIT1
 )
 
 origDWI=(
@@ -183,6 +192,8 @@ origDWI=(
 "*dwi_acq_multib_38dir_AP_acc9"
 "*dwi_acq_multib_70dir_AP_acc9_SBRef"
 "*dwi_acq_multib_70dir_AP_acc9"
+"*dwi_acq_b0_PA_SBRef"
+"*dwi_acq_b0_PA"
 )
 
 bidsDWI=(
@@ -190,7 +201,9 @@ acq-multib38_dir-AP_sbref
 acq-multib38_dir-AP_dwi
 acq-multib70_dir-AP_sbref
 acq-multib70_dir-AP_dwi
-  )
+acq-b0_dir-AP_sbref
+acq-b0_dir-AP_dwi
+)
 
 # -----------------------------------------------------------------------------------------------
 # Create BIDS/subj_dir
