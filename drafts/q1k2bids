@@ -170,7 +170,7 @@ orig=(
     "*anat-T1w_acq-mp2rage_0.7mm_CSptx_INV2"
     "*anat-T1w_acq-mp2rage_0.7mm_CSptx_T1_Images"
     "*anat-T1w_acq-mp2rage_0.7mm_CSptx_UNI_Images"
-    "*anat-T1w_acq-mp2rage_0.7mm_CSptx_UNI_DEN"
+    "*anat-T1w_acq-mp2rage_0.7mm_CSptx_UNI-DEN"
 )
 
 bids=(
@@ -181,7 +181,7 @@ bids=(
     task-cloudy_bold
     task-cross_bold
     inv-1_MP2RAGE
-    inv-1_MP2RAGE
+    inv-2_MP2RAGE
     T1map
     UNIT1
     acq-DEN_UNIT1
@@ -233,7 +233,8 @@ for ((k=0; k<=n; k++)); do
 done
 
 # move files to their corresponding directory
-cmd mv "$BIDS"/*mp2rage* "$BIDS"/anat
+cmd mv "$BIDS"/*MP2RAGE* "$BIDS"/anat
+cmd mv "$BIDS"/*UNIT1* "$BIDS"/anat
 cmd mv "$BIDS"/*bold* "$BIDS"/func
 cmd mv "$BIDS"/*T1* "$BIDS"/anat
 cmd mv "$BIDS"/*T2* "$BIDS"/anat
@@ -243,15 +244,15 @@ cmd mv "$BIDS"/*fieldmap* "$BIDS"/fmap
 for i in {1..3}; do
     str="bold_e${i}"
     for f in ${BIDS}/func/*${str}*; do
-        cmd mv $f ${f/${str}/echo-${i}_bold}
+        mv $f ${f/${str}/echo-${i}_bold}
     done
 done
 
 # REPLACE "_sbref_ph" with "part-phase_bold"
-for func in $(ls "$BIDS"/func/*"bold_ph"*); do mv -v ${func} ${func/bold_ph/part-phase_bold}; done
+for func in $(ls "$BIDS"/func/*"bold_ph"*); do mv ${func} ${func/bold_ph/part-phase_bold}; done
 
 # REMOVE the run-?
-for func in $(ls "$BIDS"/func/*"_run-"*); do mv -v ${func} ${func/_run-?/}; done
+for func in $(ls "$BIDS"/func/*"_run-"*); do mv ${func} ${func/_run-?/}; done
 
 # -----------------------------------------------------------------------------------------------
 Info "DWI acquisitions"
@@ -282,6 +283,14 @@ for n in $(ls *bval); do Dir=0
   for j in ${n/bval/}*; do mv -v "$j" dwi/${j/NUM/$Dir}; done
 done
 
+# Moving files to their correct directory location
+cmd mv -v "$BIDS"/*b0* "$BIDS"/dwi
+cmd mv -v "$BIDS"/*sbref* "$BIDS"/dwi
+cmd mv -v "$BIDS"/*epi* "$BIDS"/fmap
+cmd mv -v "$BIDS"/*angio* "$BIDS"/anat
+cmd mv -v "$BIDS"/*MTR* "$BIDS"/anat
+cmd rm -v "$BIDS"/anat/*ROI*
+
 Info "REMOVE run-1 string from new 7T DWI acquisition"
 for dwi in $(ls "$BIDS"/dwi/*"acq-multib"*"_dir-AP_run-1_dwi"*); do mv $dwi ${dwi/run-1_/}; done
 
@@ -290,14 +299,6 @@ for dwi in $(ls "$BIDS"/dwi/*"acq-multib"*"_dir-AP_run-2_dwi"*); do mv $dwi ${dw
 
 Info "REPLACE \"_sbref_ph\" with \"_part-phase_sbref\""
 for dwi in $(ls "$BIDS"/dwi/*"_sbref_ph"*); do mv -v $dwi ${dwi/_sbref_ph/_part-phase_sbref}; done
-
-# Moving files to their correct directory location
-cmd mv -v "$BIDS"/*b0* "$BIDS"/dwi
-cmd mv -v "$BIDS"/*sbref* "$BIDS"/dwi
-cmd mv -v "$BIDS"/*epi* "$BIDS"/fmap
-cmd mv -v "$BIDS"/*angio* "$BIDS"/anat
-cmd mv -v "$BIDS"/*MTR* "$BIDS"/anat
-cmd rm -v "$BIDS"/anat/*ROI*
 
 # QC, count the number of Niftis (json) per subject
 dat=$(stat ${BIDS} | awk 'NR==6 {print $2}')
