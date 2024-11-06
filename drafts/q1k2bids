@@ -201,12 +201,12 @@ acq-multib38_dir-AP_sbref
 acq-multib38_dir-AP_dwi
 acq-multib70_dir-AP_sbref
 acq-multib70_dir-AP_dwi
-acq-b0_dir-AP_sbref
-acq-b0_dir-AP_dwi
+acq-b0_dir-PA_sbref
+acq-b0_dir-PA_dwi
 )
 
-# -----------------------------------------------------------------------------------------------
-# Create BIDS/subj_dir
+#-----------------------------------------------------------------------------------------------
+#Create BIDS/subj_dir
 cmd mkdir -p "$BIDS"/{anat,func,dwi,fmap}
 if [ ! -d "$BIDS" ]; then Error "Could not create subject BIDS directory, check permissions \n\t     ${BIDS}\t    "; exit 0; fi
 
@@ -262,7 +262,7 @@ n=$((${#origDWI[@]} - 1))
 for ((k=0; k<=n; k++)); do
   N=$(ls -d ${origDWI[k]} 2>/dev/null | wc -l) # make it quiet
   if [ "$N" -eq 0 ]; then
-    Warning "No directories were found with the following name: ${origDWI[k]}"
+    Warn "No directories were found with the following name: ${origDWI[k]}"
   elif [ "$N" -gt 1 ]; then
     Names=($(ls -d ${origDWI[k]} 2>/dev/null))
     for ((i = 0; i < N; i++)); do
@@ -292,10 +292,10 @@ cmd mv -v "$BIDS"/*MTR* "$BIDS"/anat
 cmd rm -v "$BIDS"/anat/*ROI*
 
 Info "REMOVE run-1 string from new 7T DWI acquisition"
-for dwi in $(ls "$BIDS"/dwi/*"acq-multib"*"_dir-AP_run-1_dwi"*); do mv $dwi ${dwi/run-1_/}; done
+for dwi in $(ls "$BIDS"/dwi/*"acq-"*"_dir-"*"_run-1_dwi"*); do mv $dwi ${dwi/run-1_/}; done
 
 Info "REPLACE run-2 string to  from new 7T DWI acquisition"
-for dwi in $(ls "$BIDS"/dwi/*"acq-multib"*"_dir-AP_run-2_dwi"*); do mv $dwi ${dwi/run-2_/part-phase_}; done
+for dwi in $(ls "$BIDS"/dwi/*"acq-"*"_dir-"*"_run-2_dwi"*); do mv $dwi ${dwi/run-2_/part-phase_}; done
 
 Info "REPLACE \"_sbref_ph\" with \"_part-phase_sbref\""
 for dwi in $(ls "$BIDS"/dwi/*"_sbref_ph"*); do mv -v $dwi ${dwi/_sbref_ph/_part-phase_sbref}; done
