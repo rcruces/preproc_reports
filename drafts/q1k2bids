@@ -175,11 +175,11 @@ orig=(
 
 bids=(
     T1w
-    acq-b1_tra_fieldmap
+    acq-anat_TB1TFL
     dir-AP_epi
     dir-PA_epi
-    task-cloudy_bold
-    task-cross_bold
+    task-rest_cloudy_bold
+    task-rest_cross_bold
     inv-1_MP2RAGE
     inv-2_MP2RAGE
     T1map
@@ -253,6 +253,9 @@ for func in $(ls "$BIDS"/func/*"bold_ph"*); do mv ${func} ${func/bold_ph/part-ph
 
 # REMOVE the run-?
 for func in $(ls "$BIDS"/func/*"_run-"*); do mv ${func} ${func/_run-?/}; done
+
+# remove MP2RAGE bval and bvecs
+# *MP2RAGE.bv*
 
 # -----------------------------------------------------------------------------------------------
 Info "DWI acquisitions"
