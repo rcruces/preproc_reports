@@ -41,6 +41,7 @@ command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out
 # surface processing, 
 # post structural processing,
 # Geodesic distance and microstructural processing
+# Subject Quality Control reports
 ${command} \
 -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} \
 -sub ${sub} -ses ${ses} \
