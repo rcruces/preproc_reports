@@ -52,7 +52,7 @@ sorted_dir="${data_dir}/sorted/sub-${sub}_ses-${ses}/dicoms_sorted"
 # make sorted directory
 if [ ! -d "${sorted_dir}" ]; then mkdir -p "${sorted_dir}"; fi
 
-# Run the Singularity image
+# PNI: Run the Singularity image
 version="v2.2"
 dcm2bids_img="/data/mica1/01_programs/MICA-7t/7t2bids_${version}.sif"
 singularity run --containall --writable-tmpfs \
@@ -63,6 +63,14 @@ singularity run --containall --writable-tmpfs \
     --sorted_dir "${sorted_dir}/sub-${sub}_ses-${ses}" \
     --bids_dir "${bids_dir}" \
     --dicoms_dir "${dicoms_dir}" # --force
+
+# MPN: Run the Singularity image
+singularity run --containall --writable-tmpfs \
+    -B "${bids_dir}":"${bids_dir}" \
+    -B "${sorted_dir}":"${sorted_dir}" \
+    "${dcm2bids_img}" --sub "${sub}" --ses "${ses}" \
+    --bids_dir "${bids_dir}" \
+    --sorted_dir "${sorted_dir}" --dicoms_dir "${sorted_dir}" --force
 
 # -----------------------------------------
 # If it works:
