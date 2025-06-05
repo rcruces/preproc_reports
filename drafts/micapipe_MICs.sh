@@ -28,12 +28,21 @@ tmpDir=/tmp
 # Create command string
 command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B ${tmpDir}:/tmp -B ${fs_lic}:/opt/licence.txt ${img_singularity}"
 
-# flair cleanup
+# All modules
 ${command} \
 -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
--proc_flair -cleanup
+    -proc_surf -surf_dir /out/freesurfer/${sub}_${ses} \
+    -post_structural -freesurfer \
+    -proc_flair \
+    -GD \
+    -proc_func -phaseReversalRun 1 -dropTR \
+    -MPC -mpc_acq T1map -regSynth \
+    -microstructural_reg FALSE \
+    -microstructural_img /bids/sub-${sub}/ses-${ses}/anat/*_T1map.nii.gz \
+    -proc_dwi \
+    -SC
 
-# Run flair
-${command} \
--bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
--proc_flair -tmpDir ${tmpDir} -SWM
+# flair cleanup
+# ${command} \
+# -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
+# -proc_flair -cleanup

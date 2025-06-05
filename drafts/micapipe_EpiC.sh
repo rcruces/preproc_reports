@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Script to run the micapipe EpiC on BIC-SGE
-# for i in `ls sub*/ses*/QC/*proc_flair*`; do
+# for i in `ls sub*/ses*`; do
 # sub=$(echo $i | awk -F '/' '{print $1}')
 # ses=$(echo $i | awk -F '/' '{print $2}')
 # logs=/data_/mica2/tmpDir/${sub}_${ses}
@@ -28,12 +28,20 @@ tmpDir=/tmp
 # Create command string
 command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B ${tmpDir}:/tmp -B ${fs_lic}:/opt/licence.txt ${img_singularity}"
 
-# flair cleanup
+# func cleanup
 ${command} \
 -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
--proc_flair -cleanup
+-proc_func -acqStr desc-se_task-rest_bold -cleanup
 
-# Run flair
 ${command} \
 -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
--proc_flair -tmpDir ${tmpDir}
+-proc_func -acqStr desc-se_task-sternberg_bold -cleanup
+
+# Run func
+${command} \
+-bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
+-proc_func -mainScanStr task-rest_bold -tmpDir ${tmpDir} -noFIX -NSR
+
+${command} \
+-bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
+-proc_func -mainScanStr task-sternberg_bold -tmpDir ${tmpDir} -noFIX -NSR
