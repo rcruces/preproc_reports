@@ -24,7 +24,7 @@ command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out
 
 # All modules
 ${command} \
--bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
+-bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -tmpDir /tmp -sub ${sub} -ses ${ses} \
     -proc_surf -surf_dir /out/freesurfer/${sub}_${ses} \
     -post_structural -freesurfer \
     -proc_flair \
