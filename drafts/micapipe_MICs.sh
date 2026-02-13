@@ -23,7 +23,7 @@ bids=/data_/mica3/BIDS_MICs/rawdata
 fs_lic=/data_/mica1/01_programs/freesurfer-7.3.2/license.txt
 out=/data_/mica3/BIDS_MICs/derivatives
 threads=15
-tmpDir=/host/verges/tank/data/tmpdir_proc
+tmpDir=/host/verges/tank/data/tmp
 
 # Create command string
 command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B ${tmpDir}:/tmp -B ${fs_lic}:/opt/licence.txt ${img_singularity}"

@@ -1,12 +1,14 @@
 #!/bin/bash
 #
+#---------------------------------------------------
 # Script to run the micapipe EpiC on BIC-SGE
-# for i in `ls sub*/ses*`; do
-# sub=$(echo $i | awk -F '/' '{print $1}')
-# ses=$(echo $i | awk -F '/' '{print $2}')
-# logs=/data_/mica2/tmpDir/${sub}_${ses}
-# qsub -q mica.q -pe smp 10 -l h_vmem=6G -N ${sub}${ses} -e ${logs}.e -o ${logs}.txt /host/yeatman/local_raid/rcruces/git_here/preproc_reports/drafts/micapipe_EpiC.sh $sub $ses
+# for i in sub*/ses*; do
+#   sub=$(echo ${i/sub-} | awk -F '/' '{print $1}')
+#   ses=$(echo ${i/ses-} | awk -F '/' '{print $2}')
+#   logs=/data_/mica2/tmpDir/${sub}_${ses}
+#   qsub -q mica.q -pe smp 10 -l h_vmem=6G -N ${sub}${ses} -e ${logs}.e -o ${logs}.txt /host/yeatman/local_raid/rcruces/git_here/preproc_reports/drafts/micapipe_EpiC.sh $sub $ses
 # done
+#---------------------------------------------------
 
 sub=$1
 ses=$2
@@ -32,16 +34,21 @@ command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out
 # proc_dwi & SC
 
 # cleanup
-${command} \
--bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
--proc_dwi -SC -acqStr acq-b2000 -cleanup
+#${command} \
+#-bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
+#-proc_dwi -SC -acqStr acq-b2000 -cleanup
 
 # reprocess
 ${command} \
 -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
--proc_dwi -SC -dwi_acq b2000 -tmpDir /tmpdir -regSynth -dwi_upsample \
--dwi_main /bids/sub-${sub}/ses-${ses}/dwi/sub-${sub}_ses-${ses}_acq-b2000_dir-AP_dwi.nii.gz
+-proc_dwi -dwi_acq b2000 -tmpDir /tmpdir -regSynth -dwi_upsample \
+-dwi_main /bids/sub-${sub}/ses-${ses}/dwi/sub-${sub}_ses-${ses}_acq-b2000_dir-AP_dwi.nii.gz -SWM
 
+# ------------------------------------------------------------------
+# SWM processing
+# ${command} \
+# -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} -QC_subj \
+# -regSynth -SWM
 
 # ------------------------------------------------------------------
 # All modules
@@ -73,3 +80,4 @@ ${command} \
 # ${command} \
 # -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
 # -proc_func -mainScanStr task-sternberg_bold -tmpDir ${tmpDir} -noFIX -NSR
+
