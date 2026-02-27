@@ -3,3 +3,4 @@ notebooks/*txt
 notebooks/*npy
 .ipynb_checkpoints/
 drafts/*.npy
+notebooks/__pycache__/

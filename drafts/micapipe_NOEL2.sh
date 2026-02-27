@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Script to run the micapipe on BIDS_VAN data
+# Script to run the micapipe on BIDS_NOEL2 data
 # 
 sub=$1
 ses=$2
@@ -13,22 +13,27 @@ img_singularity=/data/mica1/01_programs/micapipe-v0.2.0/micapipe_"${version}".si
 
 # 3. micapipe command
 # Local variables
-bids=/data/mica3/BIDS_VAN/rawdata/
-out=/data/mica3/BIDS_VAN/derivatives/
+bids=/data/mica3/BIDS_NOEL2/rawdata/
+out=/data/mica3/BIDS_NOEL2/derivatives/
 fs_lic=/data_/mica1/01_programs/freesurfer-7.3.2/license.txt
 tmpDir=/data/mica2/temporaryNetworkProcessing/
-threads=15
+threads=10
 
 # Create command string
 command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B ${tmpDir}:/tmp -B ${fs_lic}:/opt/licence.txt ${img_singularity}"
 
-# All modules
+# FLAIR
 ${command} \
 -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -tmpDir /tmp -sub ${sub} -ses ${ses} \
-    -proc_surf -surf_dir /out/freesurfer/${sub}_${ses} \
-    -post_structural -freesurfer \
-    -proc_flair \
-    -proc_dwi -regSynth -SC \
-    -GD \
-    -proc_func -mainScanStr task-rest_bold -NSR -noFIX -dropTR -QC_subj
+    -proc_flair
+
+# All modules
+#${command} \
+#-bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -tmpDir /tmp -sub ${sub} -ses ${ses} \
+    # -proc_surf -surf_dir /out/freesurfer/${sub}_${ses} \
+    # -post_structural -freesurfer \
+    # -proc_flair \
+    # -proc_dwi -regSynth -SC \
+    # -GD \
+    # -proc_func -mainScanStr task-rest_bold -NSR -noFIX -dropTR -QC_subj
 

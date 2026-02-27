@@ -382,6 +382,7 @@ plot_hemispheres(inf_lh, inf_rh, array_name=grad, cmap='cmo.tarn', nan_color=(0.
   color_bar='right', label_text={'left': labels}, screenshot=True,
   filename=f'/home/bic/rcruces/Desktop/7t_fmri/dm{Ngrad}-sc_group.png')
 
+
 # -----------------------------------------------------------------------------
 # Calculate each Subject's DM aligned to the group
 Nsub = sc_5k.shape[2]
