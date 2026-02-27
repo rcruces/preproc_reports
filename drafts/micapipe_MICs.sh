@@ -22,7 +22,7 @@ img_singularity=/data/mica1/01_programs/micapipe-v0.2.0/micapipe_"${version}".si
 bids=/data_/mica3/BIDS_MICs/rawdata
 fs_lic=/data_/mica1/01_programs/freesurfer-7.3.2/license.txt
 out=/data_/mica3/BIDS_MICs/derivatives
-threads=15
+threads=20
 tmpDir=/tmp
 
 # Create command string
@@ -46,3 +46,8 @@ ${command} \
 # ${command} \
 # -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
 # -proc_flair -cleanup
+
+# DWI & SC
+${command} \
+-bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
+ -regSynth -proc_dwi -SC

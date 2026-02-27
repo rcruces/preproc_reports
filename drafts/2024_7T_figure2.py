@@ -63,7 +63,7 @@ os.chdir('/data_/mica3')
 subs_pni = ['PNC0'+str(f"{x:02}") for x in list(range(1,11))]
 
 # full path to 
-dir_pni = 'BIDS_PNI'
+dir_pni = 'BIDS_PNI/data_release'
 
 # For PNI subjects
 dirs_pni = []
