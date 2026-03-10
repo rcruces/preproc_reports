@@ -8,8 +8,8 @@
 # for i in ${subjects[@]}; do
 # sub=$(echo $i | awk -F '/' '{print $1}')
 # ses=$(echo $i | awk -F '/' '{print $2}')
-# logs=/data_/mica2/tmpDir/2026_MICs-SC_${sub}_${ses}
-# qsub -q mica.q -pe smp 10 -l h_vmem=6G -N ${sub}${ses} -e ${logs}.e -o ${logs}.txt /host/yeatman/local_raid/rcruces/git_here/preproc_reports/drafts/micapipe_MICs.sh $sub $ses
+# logs=/data_/mica3/tmp_proc/2026_MICs-SC_${sub}_${ses}
+# qsub -q mica.q -pe smp 10 -l h_vmem=6G -N ${sub}${ses} -e ${logs}.e -o ${logs}.txt /host/yeatman/local_raid/rcruces/git_here/preproc_reports/drafts/micapipe_MICs-SC.sh $sub
 # done
 
 sub=$1
@@ -27,10 +27,17 @@ bids=/data_/mica3/BIDS_MICs/rawdata
 fs_lic=/data_/mica1/01_programs/freesurfer-7.3.2/license.txt
 out=/data_/mica3/BIDS_MICs/derivatives
 threads=10
+tmpDir=/data_/mica3/tmp_proc
 
 # Create command string
-command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B /export02:/export02 -B /export03:/export03 -B ${TMP}:/tmp -B ${fs_lic}:/opt/licence.txt ${img_singularity}"
+command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B ${tmpDir}:${tmpDir} -B ${fs_lic}:/opt/licence.txt ${img_singularity}"
+
+echo "--------------------------------------------------------"
+echo "tmpDir:   ${tmpDir}"
+echo "${command} -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} -tmpDir ${tmpDir} -SC
+echo "--------------------------------------------------------"
 
 # SC
-${command} \
--bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} -SC
+${command} -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} -tmpDir ${tmpDir} -SC
+
+
