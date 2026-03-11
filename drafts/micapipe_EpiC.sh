@@ -32,7 +32,7 @@ command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out
 
 echo "--------------------------------------------------------"
 echo "tmpDir:   ${tmpDir}"
-echo "${command} -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} -tmpDir ${tmpDir}"
+echo "${command} -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} -tmpDir /tmpdir"
 echo "--------------------------------------------------------"
 
 # ------------------------------------------------------------------
