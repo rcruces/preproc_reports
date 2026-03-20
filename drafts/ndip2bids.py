@@ -39,78 +39,147 @@ class BIDS_micr_name:
                 filename_parts.append(f"{entity}-{self.values[entity]}")
 
         suffix = self.values.get("suffix", "BF")
-        return f"{directory_prefix}/" + "_join(filename_parts)" + f"_{suffix}"
+        filename = "_".join(filename_parts) + f"_{suffix}"
+        return f"{directory_prefix}/{filename}"
 
 class BIDS_micr_metadata:
     """Extracts and stores BIDS metadata for microscopy."""
     def __init__(self, ndpi_path):
         self.path = ndpi_path
-        self.metadata = {
-            "PixelSize": None, "PixelSizeUnits": "um", "Immersion": "Air",
-            "NumericalAperture": None, "Magnification": None,
-            "ImageAcquisitionProtocol": "Antigen retrieval CC1 buffer (24 min at 91 °C) on Ventana Discovery Ultra",
-            "OtherAcquisitionParameters": "Digitized at 40x; interpreted by expert neuropathologist",
-            "BodyPart": "BRAIN", 
-            "BodyPartDetails": "R/L cortex/hippocampus/amigdala", 
-            "BodyPartDetailsOntology": "https://www.ebi.ac.uk/ols/ontologies/uberon",
-            "SampleEnvironment": "ex vivo", "SampleEmbedding": "paraffin", "SampleFixation": "formalin 4%",
-            "SampleStaining": "Immunohistochemistry for phosphorylated tau", 
-            "SamplePrimaryAntibody": "AT8 (Ser202/Thr205; Thermo Fisher Scientific; MN1020); dilution 1:1200", 
-            "Manufacturer": "Hamamatsu", "ManufacturersModelName": "NanoZoomer S210", 
+        self.metadata = {            
+            # Get from metadata
+            # Note pixel units MUST be µm
+            "Manufacturer": None,
+            "ManufacturersModelName": None,
+            "PixelSize": None,
+            "PixelSizeUnits": None,
+            "Magnification": None,
+            "ImageAcquisitionProtocol": None,
+            "ScanTimeSeconds": None,
+            "FocusTimeSeconds": None,
+            "Software": None,
+            "DateAcquired": None,
+            "Compression": None,
+            "BitsPerPixel": None,
+
+            # Institution
             "InstitutionName": "Montreal Neurological Institute, McGill University", 
             "InstitutionAddress": "3801 University St, Montreal, Quebec H3A 2B4, Canada", 
             "InstitutionalDepartmentName": "Neuropathology"
         }
 
     def fill_from_ndpi(self):
+        """Deep search extraction for stubborn metadata fields."""
         with tifffile.TiffFile(self.path) as tif:
-            if tif.ome_metadata:
-                root = ET.fromstring(tif.ome_metadata)
-                ns = {'ome': 'http://www.openmicroscopy.org/Schemas/OME/2016-06'}
-                pixels = root.find('.//ome:Pixels', ns)
-                if pixels is not None:
-                    self.metadata["PixelSize"] = [
-                        float(pixels.get('PhysicalSizeX', 0)),
-                        float(pixels.get('PhysicalSizeY', 0))
-                    ]
-                obj = root.find('.//ome:Objective', ns)
-                if obj is not None:
-                    self.metadata["Magnification"] = float(obj.get('NominalMagnification', 40))
-                    self.metadata["NumericalAperture"] = float(obj.get('LensNA', 0))
+            page = tif.pages[0]
+            
+            # 1. Standard OME-XML Wildcard
+            try:
+                if tif.ome_metadata:
+                    root = ET.fromstring(tif.ome_metadata.strip())
+                    pixels = root.find(".//{*}Pixels")
+                    if pixels is not None:
+                        self.metadata["PixelSize"] = [
+                            round(float(pixels.get('PhysicalSizeX', 0)), 4),
+                            round(float(pixels.get('PhysicalSizeY', 0)), 4)
+                        ]
+                    
+                    obj = root.find(".//{*}Objective")
+                    if obj is not None:
+                        na = obj.get('LensNA')
+                        if na: self.metadata["NumericalAperture"] = float(na)
+            except: pass
 
+            # 2. Proprietary NDPI Tags Search
             ndpi_info = getattr(tif, 'ndpi_tags', {})
-            self.metadata["DeviceSerialNumber"] = ndpi_info.get('SerialNumber', 'Unknown')
-            self.metadata["SoftwareVersions"] = ndpi_info.get('SoftwareVersion', 'Unknown')
+            if ndpi_info:
+                # Some scanners store it directly in this dict
+                if not self.metadata["NumericalAperture"]:
+                    self.metadata["NumericalAperture"] = ndpi_info.get('NA') or ndpi_info.get('NumericalAperture')
+                
+                if not self.metadata["PixelSize"] and 'Distance' in ndpi_info:
+                    psize = round(float(ndpi_info['Distance']) / 1000.0, 4)
+                    self.metadata["PixelSize"] = [psize, psize]
+
+            # 3. Broader Regex for ImageDescription
+            # Handles "NA: 0.75", "N.A. 0.75", "NumericalAperture=0.75", etc.
+            desc = page.tags.get('ImageDescription')
+            if desc and not self.metadata["NumericalAperture"]:
+                desc_str = str(desc.value)
+                # Regex: Look for variations of NA followed by a float
+                na_match = re.search(r'(?:NA|N\.A\.|Numerical\s?Aperture)[:\s=]+([0-9\.]+)', desc_str, re.IGNORECASE)
+                if na_match:
+                    self.metadata["NumericalAperture"] = float(na_match.group(1))
+
+            # 4. Brute-force TIFF Tag Scan (Last Resort)
+            if not self.metadata["NumericalAperture"]:
+                for tag in page.tags:
+                    tag_data = str(tag.value)
+                    if "NA" in tag_data or "Aperture" in tag_data:
+                        na_match = re.search(r'([0-9]\.[0-9]{2})', tag_data)
+                        if na_match:
+                            self.metadata["NumericalAperture"] = float(na_match.group(1))
+                            break
+
+            # 5. Resolution Fallback for PixelSize
+            if not self.metadata["PixelSize"]:
+                x_res = page.tags.get('XResolution')
+                unit = page.tags.get('ResolutionUnit')
+                if x_res and unit:
+                    res_val = x_res.value[0] / x_res.value[1]
+                    if unit.value == 3: psize = 10000.0 / res_val
+                    elif unit.value == 2: psize = 25400.0 / res_val
+                    self.metadata["PixelSize"] = [round(psize, 4), round(psize, 4)]
 
     def save_json(self, output_path):
+        """Writes the dictionary to a BIDS-compliant JSON file."""
         with open(output_path, 'w') as f:
             json.dump(self.metadata, f, indent=4)
 
 # --- Execution Script ---
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert NDPI to BIDS Microscopy structure.")
+    parser = argparse.ArgumentParser(description="Convert NDPI files to BIDS Microscopy format (MNI Neuropathology).")
     
-    # Mandatory Arguments
-    parser.add_argument("--ndpi_path", required=True, help="Path to source .ndpi file")
-    parser.add_argument("--bids_root", required=True, help="Path to BIDS dataset root")
-    parser.add_argument("--sub", required=True, help="Subject ID (e.g., 01)")
-    parser.add_argument("--stain", required=True, help="Stain label (e.g., AT8)")
+    # Mandatory BIDS arguments
+    parser.add_argument("--ndpi_path", required=True, help="Path to raw Hamamatsu .ndpi file")
+    parser.add_argument("--bids", required=True, help="Path to the root of the BIDS dataset")
+    parser.add_argument("--sub", required=True, help="Subject ID (e.g., PX067)")
+    parser.add_argument("--stain", required=True, help="Stain entity (e.g., AT8)")
     parser.add_argument("--suffix", required=True, help="BIDS suffix (e.g., BF)")
 
-    # Optional BIDS Entities
+    # Optional BIDS entities
     parser.add_argument("--ses", help="Session ID")
-    parser.add_argument("--sample", default="01", help="Sample ID")
-    parser.add_argument("--acq", help="Acquisition label (e.g., 40x)")
+    parser.add_argument("--sample", help="Sample ID (e.g., NP24709)")
+    parser.add_argument("--acq", help="Acquisition label")
     parser.add_argument("--run", help="Run index")
-    parser.add_argument("--chunk", help="Chunk index")
-    parser.add_argument("--convert", action="store_true", help="Convert to OME-TIFF using bfconvert")
+    parser.add_argument("--chunk", help="Chunk label (e.g., A3)")
+    
+    # Operational flags
+    parser.add_argument("--convert", action="store_true", help="Convert NDPI to OME-TIFF via bfconvert")
+    parser.add_argument("--force", action="store_true", help="Overwrite existing BIDS files and sidecars")
 
     args = parser.parse_args()
 
-    # 0. Setup Logging
-    log_file = os.path.join(args.bids_root, "bids_conversion.log")
-    os.makedirs(args.bids_root, exist_ok=True)
+    # --- 1. Setup Naming and Directory Logic ---
+    entities = {k: v for k, v in vars(args).items() if v is not None}
+    bids_namer = BIDS_micr_name(**entities)
+    bids_rel_path = bids_namer.build()
+    full_bids_base = os.path.join(args.bids, bids_rel_path)
+    
+    # Define log location at the same level as /micr
+    subject_session_root = os.path.dirname(os.path.dirname(full_bids_base))
+    log_dir = os.path.join(subject_session_root, "log")
+    os.makedirs(log_dir, exist_ok=True)
+
+    # --- 2. Setup Logging ---
+    log_name_parts = [f"sub-{args.sub}"]
+    if args.ses: log_name_parts.append(f"ses-{args.ses}")
+    log_name_parts.append("bids-micr.log")
+    
+    log_file = os.path.join(log_dir, "_".join(log_name_parts))
+    
+    # Configure logging to write to the new subject-specific file
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
@@ -119,45 +188,47 @@ def main():
 
     logging.info(f"Processing started for: {args.ndpi_path}")
 
-    # 1. Setup Naming Entities
-    entities = vars(args)
-    bids_namer = BIDS_micr_name(**entities)
-    bids_rel_path = bids_namer.build()
-    full_bids_base = os.path.join(args.bids_root, bids_rel_path)
-
     try:
-        # 2. Create Directory
+        # Step 3: Directories and Copy
         os.makedirs(os.path.dirname(full_bids_base), exist_ok=True)
-
-        # 3. Copy NDPI
         target_ndpi = f"{full_bids_base}.ndpi"
-        logging.info(f"Copying NDPI to {target_ndpi}")
+        target_json = f"{full_bids_base}.json"
+
+        if os.path.exists(target_ndpi) and not args.force:
+            logging.info(f"SKIPPED: {target_ndpi} exists. Use --force to overwrite.")
+            return
+
+        status_prefix = "OVERWRITE" if os.path.exists(target_ndpi) else "NEW"
+        logging.info(f"{status_prefix}: Copying NDPI to {target_ndpi}")
         shutil.copy2(args.ndpi_path, target_ndpi)
 
-        # 4. Metadata Extraction
-        logging.info("Extracting metadata...")
+        # Step 4: Metadata
+        logging.info("Metadata: Extracting from headers...")
         meta = BIDS_micr_metadata(target_ndpi)
         meta.fill_from_ndpi()
-        meta.save_json(f"{full_bids_base}.json")
-        logging.info(f"Metadata JSON saved.")
+        meta.save_json(target_json)
+        logging.info("Metadata: JSON sidecar saved.")
 
-        # 5. Optional OME-TIFF Conversion
+        # Step 5: Optional Conversion
         if args.convert:
             target_ome = f"{full_bids_base}.ome.tif"
-            logging.info("Starting OME-TIFF conversion...")
-            result = subprocess.run(
-                ['bfconvert', '-bigtiff', '-compression', 'LZW', target_ndpi, target_ome], 
-                capture_output=True, text=True
-            )
-            if result.returncode == 0:
-                logging.info(f"Conversion successful: {target_ome}")
+            if os.path.exists(target_ome) and not args.force:
+                logging.info("Conversion: OME-TIFF exists, skipping.")
             else:
-                logging.error(f"bfconvert failed: {result.stderr}")
+                logging.info("Conversion: Starting bfconvert...")
+                result = subprocess.run(
+                    ['bfconvert', '-bigtiff', '-compression', 'LZW', target_ndpi, target_ome],
+                    capture_output=True, text=True
+                )
+                if result.returncode == 0:
+                    logging.info(f"Conversion: Success -> {target_ome}")
+                else:
+                    logging.error(f"Conversion: Failed -> {result.stderr}")
 
-        logging.info(f"Successfully processed sub-{args.sub}")
+        logging.info(f"STATUS: SUCCESS for sub-{args.sub}")
 
     except Exception as e:
-        logging.error(f"Failed to process {args.ndpi_path}: {str(e)}")
+        logging.error(f"STATUS: FAILED for sub-{args.sub} - {str(e)}")
 
 if __name__ == "__main__":
     main()
