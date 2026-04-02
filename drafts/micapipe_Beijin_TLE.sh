@@ -20,10 +20,12 @@ version=v0.2.3
 img_singularity=/data/mica1/01_programs/micapipe-v0.2.0/micapipe_"${version}".sif
 
 # 3. micapipe command
+# Dataset paths
+bids=/host/verges/tank/data/mo/BIDS_20251201_TLE_BTTH1/rawdata
+out=/host/verges/tank/data/mo/BIDS_20251201_TLE_BTTH1/derivatives
+
 # Local variables
-bids=/host/verges/tank/data/BIDS_Beijing_FCD/rawdata
 fs_lic=/data_/mica1/01_programs/freesurfer-7.3.2/license.txt
-out=/host/verges/tank/data/BIDS_Beijing_FCD/derivatives
 threads=10
 tmpDir=/data_/mica3/tmp_proc
 
