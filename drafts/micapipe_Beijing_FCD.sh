@@ -25,10 +25,14 @@ bids=/host/verges/tank/data/BIDS_Beijing_FCD/rawdata
 fs_lic=/data_/mica1/01_programs/freesurfer-7.3.2/license.txt
 out=/host/verges/tank/data/BIDS_Beijing_FCD/derivatives
 threads=10
-tmpDir=/data_/mica3/tmp_proc
+tmpDir=/host/bb-compx-03/export02/tmp
+export TMPDIR=$tmpDir
 
 # Create command string
-command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B ${tmpDir}:/tmpdir -B ${fs_lic}:/opt/licence.txt ${img_singularity}"
+command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B ${tmpDir}:/tmpdir -B ${tmpDir}:/tmp -B ${fs_lic}:/opt/licence.txt ${img_singularity}"
+
+# Permission
+umask 002
 
 echo "--------------------------------------------------------"
 echo "tmpDir:   ${tmpDir}"
@@ -40,8 +44,8 @@ echo "--------------------------------------------------------"
 ${command} \
 -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
 -proc_dwi -tmpDir /tmpdir -regSynth -dwi_upsample \
--dwi_main /bids/sub-${sub}/ses-${ses}/dwi/sub-${sub}_ses-${ses}_dwi.nii.gz -dwi_rpe "FALSE"
+-dwi_main /bids/sub-${sub}/ses-${ses}/dwi/sub-${sub}_ses-${ses}_dwi.nii.gz -dwi_rpe ""
 
 # CLEANUP -proc_dwi
-#${command} -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
-#-cleanup -proc_dwi
+# ${command} -bids /bids -out /out -fs_licence /opt/licence.txt -threads ${threads} -sub ${sub} -ses ${ses} \
+# -cleanup -proc_dwi
