@@ -1,0 +1,25 @@
+{
+  "Name": "MICA-MICs: a dataset for Microstructure-Informed Connectomics",
+  "BIDSVersion": "1.11.1",
+  "BIDSValidator": "deno bids-validator 2.0.11",
+  "DatasetType": "raw",
+  "License": "PDDL",
+  "Acknowledgements": "The authors thank all participants who took part in this study. We also thank David Costa, Ronald Lopez, and Louise Marcotte for their assistance in data collection, as well as Ilana Leppert and Michael Ferreira for their guidance in designing the scanning protocol.",
+  "HowToAcknowledge": "Please cite: Royer, J., Rodríguez-Cruces, R., Tavakol, S., Larivière, S., Herholz, P., Li, Q., et al. (2022). An open MRI dataset for multiscale neuroscience. Scientific Data, 9(1), 569. https://doi.org/10.1038/s41597-022-01682-y",
+  "Funding": [
+    "JR received support from the Canadian Open Neuroscience Platform (CONP) and Canadian Institute of Health Research (CIHR).",
+    "CP and RRC received support from the Fonds de la Recherche du Québec – Santé (FRQ-S).",
+    "SL acknowledges funding from CIHR.",
+    "RV receives support from a Savoy Foundation studentship.",
+    "OB received support from the Healthy Brains for Healthy Lives (HBHL) program.",
+    "RRC was supported by FRQ-S 291486.",
+    "BP was supported by the National Research Foundation of Korea (NRF-2020R1A6A3A03037088).",
+    "BF receives salary support from FRQ-S (Chercheur-Boursier clinician Junior 2) and start-up funding from the Montreal Neurological Institute.",
+    "BCB acknowledges support from CIHR (FDN-154298), SickKids Foundation (NI17-039), NSERC (Discovery-1304413), Azrieli Center for Autism Research (ACAR), BrainCanada, FRQ-S, and the Canada Research Chairs Program."
+  ],
+  "ReferencesAndLinks": [
+    "CONP: https://n2t.net/ark:/70798/d72xnk2wd397j190qv",
+    "Scientific data: https://doi.org/10.1038/s41597-022-01682-y"
+  ],
+  "DatasetDOI": "OSF: https://doi.org/10.17605/OSF.IO/J532R"
+}
