@@ -31,7 +31,7 @@ threads=10
 tmpDir=/host/bb-compx-03/export02/tmp
 
 # Create command string
-command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B ${tmpDir}:/tmpdir -B ${fs_lic}:/opt/licence.txt ${img_singularity}"
+command="singularity run --writable-tmpfs --containall -B ${bids}:/bids -B ${out}:/out -B ${tmpDir}:/tmpdir -B ${tmpDir}:/tmp -B ${fs_lic}:/opt/licence.txt ${img_singularity}"
 
 echo "--------------------------------------------------------"
 echo "tmpDir:   ${tmpDir}"

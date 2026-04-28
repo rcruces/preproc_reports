@@ -1,0 +1,133 @@
+# schema: https://github.com/citation-file-format/citation-file-format/blob/main/schema-guide.md
+
+cff-version: 1.2.0
+
+title: "MICA-MICs: a dataset for Microstructure-Informed Connectomics"
+
+message: "MICA lab, Brain Imaging Center, Montreal Neurological Institute and Hospital."
+
+type: software
+
+license: CC0-1.0
+
+repository-code: https://portal.conp.ca/dataset?id=projects/mica-mics
+
+identifiers:
+  - description: "Archival resource Key of the public data"
+    type: url
+    value: https://n2t.net/ark:/70798/d72xnk2wd397j190qv
+
+keywords:
+  - dataset
+  - open data
+  - brain imaging data structure
+  - BIDS
+  - neuroscience
+  - neuroimaging
+  - neuroinformatics
+
+authors:  # CURRENT release contributors
+  - family-names: Rodriguez-Cruces
+    given-names: Raul
+    email: raul.rodriguezcruces@mcgill.ca
+    orcid: https://orcid.org/0000-0002-2917-1212
+
+  - family-names: Royer
+    given-names: Jessica
+    orcid: https://orcid.org/0000-0002-4448-8998
+
+  - family-names: Xie
+    given-names: Ke
+
+  - family-names: Smith
+    given-names: Meaghan
+    orcid: https://orcid.org/0009-0007-0838-6947
+
+  - family-names: Goodall-Halliwell
+    given-names: Ian
+
+  - family-names: Sahlas
+    given-names: Ella
+
+  - family-names: Dascal
+    given-names: Arielle
+
+  - family-names: Naish
+    given-names: Marlo
+
+  - family-names: Mendelson
+    given-names: Daniel
+
+  - family-names: Bernhardt
+    given-names: Boris C.
+    email: boris.bernhardt@mcgill.ca
+    orcid: https://orcid.org/0000-0001-9256-6041
+
+preferred-citation: # ORIGINAL publication
+  type: article
+  title: "An open MRI dataset for multiscale neuroscience"
+  journal: Scientific Data
+  year: 2022
+  volume: 9
+  issue: 1
+  doi: 10.1038/s41597-022-01682-y
+
+  authors:
+    - family-names: Royer
+      given-names: Jessica
+      orcid: https://orcid.org/0000-0002-4448-8998
+
+    - family-names: Rodríguez-Cruces
+      given-names: Raúl
+      orcid: https://orcid.org/0000-0002-2917-1212
+
+    - family-names: Tavakol
+      given-names: Shahin
+
+    - family-names: Larivière
+      given-names: Sara
+
+    - family-names: Herholz
+      given-names: Peer
+      orcid: https://orcid.org/0000-0002-9840-6257
+
+    - family-names: Li
+      given-names: Qiongling
+      orcid: https://orcid.org/0000-0001-6989-2981
+
+    - family-names: Vos de Wael
+      given-names: Reinder
+
+    - family-names: Paquola
+      given-names: Casey
+
+    - family-names: Benkarim
+      given-names: Oualid
+
+    - family-names: Park
+      given-names: Bo-yong
+      orcid: https://orcid.org/0000-0001-7096-337X
+
+    - family-names: Lowe
+      given-names: Alexander J.
+
+    - family-names: Margulies
+      given-names: Daniel
+      orcid: https://orcid.org/0000-0002-8880-9204
+
+    - family-names: Smallwood
+      given-names: Jonathan
+
+    - family-names: Bernasconi
+      given-names: Andrea
+
+    - family-names: Bernasconi
+      given-names: Neda
+
+    - family-names: Frauscher
+      given-names: Birgit
+
+    - family-names: Bernhardt
+      given-names: Boris C.
+      email: boris.bernhardt@mcgill.ca
+      orcid: https://orcid.org/0000-0001-9256-6041
