@@ -1,0 +1,18 @@
+{
+  "Manufacturer": "Siemens",
+	"ManufacturersModelName": "Prisma_fit",
+	"ProcedureStepDescription": "Protocolo_Epilepsia",
+	"InstitutionName": "Mc Connell Brain Imaging Centre",
+	"InstitutionalDepartmentName": "Department",
+	"InstitutionAddress": "University Street 3801,Montreal,District,CA,H3A 2B4",
+	"DeviceSerialNumber": "167017",
+	"StationName": "MRC35056",
+	"BodyPartExamined": "BRAIN",
+	"FlipAngle": 50,
+	"EchoTime": 0.03,
+	"RepetitionTime": 0.6,
+	"BodyPartExamined": "BRAIN",
+	"ImageType": ["ORIGINAL", "PRIMARY", "M", "MB", "ND", "NORM", "MOSAIC"],
+	"MagneticFieldStrength": 3.0,
+	"TaskName": "resting"
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) 2025 Raul R. Cruces
+# Copyright (c) 2026 Raul R. Cruces
 # ------------------------------------------------------------
 # MICs BIDS Export Script
 # ------------------------------------------------------------
@@ -40,7 +40,7 @@
 # ------------------------------------------------------------
 # Outputs:
 #   - BIDS-like directory at:
-#       /host/bb-compx-01/export01/data/BIDS_MICs
+#       /host/bb-compx-03/export02/databases/BIDS_MICs
 #
 #   - Generated files:
 #       participants.tsv
@@ -60,7 +60,7 @@
 set -euo pipefail
 
 orig="/data_/mica3/BIDS_MICs/rawdata"
-out="/host/bb-compx-01/export01/data/BIDS_MICs"
+out="/host/bb-compx-03/export02/databases/BIDS_MICs"
 xlsx="${out}/mica_subjlist_NUS.xlsx"
 bids=${out}/rawdata
 
@@ -102,7 +102,6 @@ EOF
 echo "Created participants.tsv"
 
 # Create participants.json
-# Create participants.json
 cat <<EOF > "${bids}/participants.json"
 {
   "participant_id": {
@@ -139,7 +138,7 @@ cat <<EOF > "${bids}/participants.json"
       "F": "Female"
     }
   },
-  "age": {
+  "age": { 
     "Description": "Age of the participant at the time of scanning.",
     "Units": "years"
   },
@@ -155,10 +154,11 @@ cat <<EOF > "${bids}/participants.json"
 EOF
 
 # ----------------------------------------
-# 2. Copy CITATION.cff
+# 2. Copy CITATION.cff and task json files
 # ----------------------------------------
 if [ -f "${orig}/CITATION.cff" ]; then
     cp "${orig}/CITATION.cff" "${bids}/"
+    cp "${orig}/task-rest_bold.json" "${bids}/"
     echo "Copied CITATION.cff"
 else
     echo "Warning: CITATION.cff not found in ${orig}"
@@ -191,36 +191,56 @@ for sub in ${participants}; do
     mkdir -p "${dir_out}/anat" "${dir_out}/func"
 
     # ------------------------------------
-    # Symlink T1w
+    # Symlink T1w (skip if already present)
     # ------------------------------------
-    if compgen -G "${dir_orig}/anat/*T1w*" > /dev/null; then
-        for f in ${dir_orig}/anat/*T1w*; do
-            ln -sf "${f}" "${dir_out}/anat/"
-        done
+    if compgen -G "${dir_out}/anat/*T1w*" > /dev/null; then
+        echo "T1w already exists for ${sub}, skipping"
     else
-        echo "No T1w found for ${sub}"
+        if compgen -G "${dir_orig}/anat/*T1w*" > /dev/null; then
+            for f in ${dir_orig}/anat/*T1w*; do
+                ln -sf "${f}" "${dir_out}/anat/"
+            done
+        else
+            echo "No T1w found for ${sub}"
+        fi
     fi
 
     # ------------------------------------
-    # Copy resting-state func
+    # Copy resting-state func (skip if already present)
     # ------------------------------------
-    if compgen -G "${dir_orig}/func/*task-rest*" > /dev/null; then
-        rsync -av --ignore-existing \
-            ${dir_orig}/func/*task-rest* \
-            "${dir_out}/func/"
+    if compgen -G "${dir_out}/func/*task-rest*" > /dev/null; then
+        echo "Rest func already exists for ${sub}, skipping"
     else
-        echo "No rest func found for ${sub}"
+        if compgen -G "${dir_orig}/func/*task-rest*" > /dev/null; then
+            rsync -av --ignore-existing \
+                ${dir_orig}/func/*task-rest* \
+                "${dir_out}/func/"
+        else
+            echo "No rest func found for ${sub}"
+        fi
     fi
 
 done
 
 # -----------------------------------------------------------------------------------------------#
-# Rename sbref AP PA to be bids compliant
-
-# ANONIMIZATION of T1w data
+# Rename key from func jsons to be bids compliant (AcquisitionDuration >> AcquisitionDurationSec)
+find ${dir_out}/sub*/ses*/func -type f -name "*.json" -exec sed -i 's/"AcquisitionDuration"/"AcquisitionDurationSec"/g' {} +
 
 # -----------------------------------------------------------------------------------------------#
-# BIDS validation
+# Replace acq- with dir-
+for f in sub*/ses*/func/*acq-*; do mv -v $f ${f/acq-/dir-}; done
+# remove the `se` string and replace bold with sbref in the reference 
+for f in sub*/ses*/func/*dir-??se*; do nf=${f/_bold/_sbref}; mv -v $f ${nf/se_/_}; done
+
+# -----------------------------------------------------------------------------------------------#
+# DE-IDENTIFICATION of T1w data
+for sub in ${bids}/sub-*; do micapipe_deidentify -sub ${sub#${bids}/sub-} -ses 01 -bids ${bids} -out ${bids} -deface -threads 15; done
+
+# Unlink files, keeping only the de-identified
+find sub*/ses*/anat/ -type l -exec sh -c 'echo "unlinking $1"; unlink "$1"' _ {} \;
+
+# -----------------------------------------------------------------------------------------------#
+echo -e ""----------------------------------------"\nBIDS validation"
 echo "bids_validator_output.txt" >> ${bids}/.bidsignore
 deno run --allow-write -ERN jsr:@bids/validator ${bids} --ignoreWarnings --outfile ${bids}/bids_validator_output.txt
 
